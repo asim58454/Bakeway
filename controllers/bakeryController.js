@@ -1,10 +1,11 @@
 const Bakery = require("../models/BakeryModel");
 const Order = require("../models/OrderModel");
 const cloudinary = require("../config/cloudinaryConfig");
+
 // ✅ Add Bakery Menu Item (With Image)
 exports.addMenuItem = async (req, res) => {
   try {
-    const { name, price } = req.body;
+    const { name, price, image } = req.body; // Get Base64 Image from Frontend
     const bakery = await Bakery.findById(req.user.id); // Get Bakery ID from JWT
 
     if (!bakery) {
@@ -12,17 +13,18 @@ exports.addMenuItem = async (req, res) => {
     }
 
     let imageUrl = "";
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "menu_items", // Save images in a Cloudinary folder
+    if (image) {
+      // Upload Base64 Image to Cloudinary
+      const result = await cloudinary.uploader.upload(image, {
+        folder: "menu_items",
       });
-      imageUrl = result.secure_url; // Get the image URL from Cloudinary
+      imageUrl = result.secure_url;
     }
 
     const newItem = {
       name,
       price,
-      image: imageUrl, // Save the Cloudinary image URL
+      image: imageUrl, // Save Cloudinary URL
     };
 
     bakery.menu.push(newItem);
@@ -33,6 +35,7 @@ exports.addMenuItem = async (req, res) => {
     res.status(500).json({ message: "Error Adding Menu", error: error.message });
   }
 };
+
 
 // ✅ Get Orders by Bakery
 exports.getOrders = async (req, res) => {
