@@ -16,11 +16,12 @@ const app = express();
 // ✅ Allow only frontend domain (Fixes CORS issue on Vercel)
 app.use(
   cors({
-    origin: ["https://bakeway.vercel.app"], // Allow frontend URL
+    origin: "*", // ✅ Temporarily allow all origins
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 
 app.use(express.json());
 
