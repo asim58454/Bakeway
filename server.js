@@ -12,7 +12,16 @@ const path = require("path");
 connectDB();
 
 const app = express();
-app.use(cors());
+
+// ✅ Allow only frontend domain (Fixes CORS issue on Vercel)
+app.use(
+  cors({
+    origin: ["https://bakeway.vercel.app"], // Allow frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 
 // 🛠️ Serve Static Folder (Fix Image Not Showing Issue)
