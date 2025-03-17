@@ -1,42 +1,47 @@
 const Rider = require("../models/RiderModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const cloudinary = require("cloudinary").v2;
+const cloudinary = require("../config/cloudinaryConfig"); // ✅ Use the correct Cloudinary config
+
+// ✅ Helper Function to Upload Images to Cloudinary
+const uploadImage = async (file) => {
+  try {
+    const result = await cloudinary.uploader.upload(file.path, { folder: "riders" });
+    return result.secure_url;
+  } catch (error) {
+    throw new Error("Image upload failed!");
+  }
+};
 
 // ✅ Rider Registration with Cloudinary Upload
 exports.registerRider = async (req, res) => {
   try {
     const { name, email, phone, password, cnicNumber } = req.body;
 
-    // ✅ Check if all fields are filled
+    // ✅ Check if all required fields are provided
     if (!name || !email || !phone || !password || !cnicNumber || !req.files) {
       return res.status(400).json({ message: "All fields and documents are required!" });
     }
 
-    // ✅ Check if CNIC already exists
+    // ✅ Check if CNIC is already registered
     const existingRider = await Rider.findOne({ cnicNumber });
     if (existingRider) {
       return res.status(400).json({ message: "CNIC Number already in use. Please enter a unique CNIC." });
     }
 
-    // ✅ Upload images to Cloudinary
-    const uploadImage = async (file) => {
-      const result = await cloudinary.uploader.upload(file.path, { folder: "riders" });
-      return result.secure_url;
-    };
-
+    // ✅ Upload images only if they exist in request
     const cnicImage = req.files.cnicImage ? await uploadImage(req.files.cnicImage[0]) : null;
     const licenseImage = req.files.licenseImage ? await uploadImage(req.files.licenseImage[0]) : null;
     const bikeDocsImage = req.files.bikeDocsImage ? await uploadImage(req.files.bikeDocsImage[0]) : null;
 
     if (!cnicImage || !licenseImage || !bikeDocsImage) {
-      return res.status(400).json({ message: "All documents must be uploaded!" });
+      return res.status(400).json({ message: "All document images must be uploaded!" });
     }
 
-    // ✅ Hash Password
+    // ✅ Hash Password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Create New Rider
+    // ✅ Create & Save New Rider
     const newRider = new Rider({
       name,
       email,
@@ -75,9 +80,11 @@ exports.loginRider = async (req, res) => {
       return res.status(403).json({ message: "Your registration is pending approval." });
     }
 
-    const token = jwt.sign({ id: rider._id, email: rider.email, status: rider.status }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    const token = jwt.sign(
+      { id: rider._id, email: rider.email, status: rider.status },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.json({ token, rider });
   } catch (error) {
