@@ -1,25 +1,26 @@
 const multer = require("multer");
-const path = require("path");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+require("dotenv").config();
 
-// Storage Setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Folder where images will be stored
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+// 🔹 Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// 🔹 Setup Cloudinary Storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "bakeway_uploads", // Cloudinary folder name
+    allowed_formats: ["jpg", "jpeg", "png"], // Allowed image types
+    public_id: (req, file) => `bakeway_${Date.now()}_${file.originalname}`, // Unique filename
   },
 });
 
-// File Filter (Only Images Allowed)
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image/")) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only images are allowed!"), false);
-  }
-};
-
-const upload = multer({ storage, fileFilter });
+// 🔹 File Upload Middleware
+const upload = multer({ storage });
 
 module.exports = upload;

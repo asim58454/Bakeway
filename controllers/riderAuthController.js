@@ -1,51 +1,66 @@
 const Rider = require("../models/RiderModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const cloudinary = require("cloudinary").v2;
 
+// ✅ Rider Registration with Cloudinary Upload
 exports.registerRider = async (req, res) => {
-    try {
-      const { name, email, phone, password, cnicNumber } = req.body;
-      const cnicImage = req.files?.cnicImage?.[0]?.path;
-      const licenseImage = req.files?.licenseImage?.[0]?.path;
-      const bikeDocsImage = req.files?.bikeDocsImage?.[0]?.path;
-  
-      if (!name || !email || !phone || !password || !cnicNumber || !cnicImage || !licenseImage || !bikeDocsImage) {
-        return res.status(400).json({ message: "All fields and documents are required!" });
-      }
-  
-      // ✅ Check if CNIC already exists
-      const existingRider = await Rider.findOne({ cnicNumber });
-      if (existingRider) {
-        return res.status(400).json({ message: "CNIC Number already in use. Please enter a unique CNIC." });
-      }
-  
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      const newRider = new Rider({
-        name,
-        email,
-        phone,
-        password: hashedPassword,
-        cnicNumber,
-        cnicImage,
-        licenseImage,
-        bikeDocsImage,
-        status: "Pending",
-      });
-  
-      await newRider.save();
-  
-      res.status(201).json({
-        message: "Registration submitted for approval!",
-        riderId: newRider._id,  // ✅ Return the newly created rider's ID
-      });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
-  
-  
+  try {
+    const { name, email, phone, password, cnicNumber } = req.body;
 
+    // ✅ Check if all fields are filled
+    if (!name || !email || !phone || !password || !cnicNumber || !req.files) {
+      return res.status(400).json({ message: "All fields and documents are required!" });
+    }
+
+    // ✅ Check if CNIC already exists
+    const existingRider = await Rider.findOne({ cnicNumber });
+    if (existingRider) {
+      return res.status(400).json({ message: "CNIC Number already in use. Please enter a unique CNIC." });
+    }
+
+    // ✅ Upload images to Cloudinary
+    const uploadImage = async (file) => {
+      const result = await cloudinary.uploader.upload(file.path, { folder: "riders" });
+      return result.secure_url;
+    };
+
+    const cnicImage = req.files.cnicImage ? await uploadImage(req.files.cnicImage[0]) : null;
+    const licenseImage = req.files.licenseImage ? await uploadImage(req.files.licenseImage[0]) : null;
+    const bikeDocsImage = req.files.bikeDocsImage ? await uploadImage(req.files.bikeDocsImage[0]) : null;
+
+    if (!cnicImage || !licenseImage || !bikeDocsImage) {
+      return res.status(400).json({ message: "All documents must be uploaded!" });
+    }
+
+    // ✅ Hash Password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Create New Rider
+    const newRider = new Rider({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      cnicNumber,
+      cnicImage,
+      licenseImage,
+      bikeDocsImage,
+      status: "Pending",
+    });
+
+    await newRider.save();
+
+    res.status(201).json({
+      message: "Registration submitted for approval!",
+      riderId: newRider._id,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Rider Login
 exports.loginRider = async (req, res) => {
   try {
     const { email, password } = req.body;
