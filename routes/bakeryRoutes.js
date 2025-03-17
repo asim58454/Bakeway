@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.get("/orders/:bakeryId", protect, isBakery, getOrders);
 router.put("/order-status/:orderId", protect, isBakery, updateOrderStatus);
-router.post("/menu", protect, isBakery, upload.single("image"), addMenuItem);
+router.post("/menu", protect, isBakery, addMenuItem);
 
 // ✅ Custom Order Routes
 router.get("/custom-orders", protect, isBakery, getAvailableCustomOrders);
