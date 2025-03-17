@@ -44,14 +44,15 @@ exports.getOrderHistory = async (req, res) => {
 exports.getPendingRiders = async (req, res) => {
   try {
     const pendingRiders = await Rider.find({ status: "Pending" }).select(
-      "name email phone cnicNumber cnicImage licenseImage bikeDocsImage status createdAt"
-    ); // ✅ Select only required fields
+      "name email phone cnicNumber cnicImage licenseImage bikeDocsImage status"
+    );
 
-    res.status(200).json(pendingRiders);
+    res.json(pendingRiders);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching pending riders", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.approveRider = async (req, res) => {
   try {
